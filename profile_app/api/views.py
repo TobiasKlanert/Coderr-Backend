@@ -1,11 +1,12 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
-from .serializers import ProfileSerializer
+from .serializers import ProfileDetailSerializer, ProfileListSerializer
 from ..models import UserProfile
+
 
 class ProfileDetailView(generics.RetrieveAPIView):
     queryset = UserProfile.objects.all()
-    serializer_class = ProfileSerializer
+    serializer_class = ProfileDetailSerializer
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = 'user_id'
     lookup_url_kwarg = 'user'
@@ -43,3 +44,19 @@ class ProfileDetailView(generics.RetrieveAPIView):
                 data[f] = ""
 
         return Response(data, status=status.HTTP_200_OK)
+
+
+class BusinessProfileListView(generics.ListAPIView):
+    serializer_class = ProfileListSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return (UserProfile.objects.filter(type='business')).distinct()
+
+
+class CustomerProfileListView(generics.ListAPIView):
+    serializer_class = ProfileListSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return (UserProfile.objects.filter(type='customer')).distinct()
