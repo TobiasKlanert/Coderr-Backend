@@ -51,7 +51,7 @@ class BusinessProfileListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return (UserProfile.objects.filter(type='business')).distinct()
+        return (UserProfile.objects.filter(user__type='business')).distinct()
 
 
 class CustomerProfileListView(generics.ListAPIView):
@@ -59,4 +59,4 @@ class CustomerProfileListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return (UserProfile.objects.filter(type='customer')).distinct()
+        return (UserProfile.objects.filter(user__type='customer')).distinct()
