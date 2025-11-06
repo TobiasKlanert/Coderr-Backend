@@ -9,6 +9,7 @@ This module defines:
 from django.contrib.auth import authenticate
 from rest_framework import serializers
 from ..models import User
+from profile_app.models import UserProfile
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -66,10 +67,23 @@ class RegistrationSerializer(serializers.ModelSerializer):
             })
 
         # Create new user
+        user_type = self.validated_data.get('type', User.Type.CUSTOMER)
         account = User(
-            email=self.validated_data['email'], username=self.validated_data['username'])
+            email=self.validated_data['email'],
+            username=self.validated_data['username'],
+            type=user_type,
+        )
 
         # Hash and set password, then persist
         account.set_password(pw)
         account.save()
+
+        # Create a related user profile upon registration
+        UserProfile.objects.create(
+            user=account,
+            email=account.email,
+            created_at=account.date_joined,
+            type=user_type,
+        )
+
         return account
