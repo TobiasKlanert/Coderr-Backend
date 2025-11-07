@@ -1,4 +1,5 @@
 from django.utils import timezone
+from django.urls import reverse
 from rest_framework import serializers
 from ..models import Detail, Offer
 from profile_app.models import UserProfile
@@ -20,12 +21,14 @@ class DetailSerializer(serializers.ModelSerializer):
         ]
 
 
-class OfferSerializer(serializers.ModelSerializer):
+class OfferCreateSerializer(serializers.ModelSerializer):
     details = DetailSerializer(many=True)
 
     class Meta:
         model = Offer
-        fields = ['id', 'title', 'image', 'description', 'details']
+        fields = [
+            'id', 'title', 'image', 'description', 'details'
+        ]
 
     def validate_details(self, value):
         if not isinstance(value, list) or len(value) != 3:
@@ -77,3 +80,38 @@ class OfferSerializer(serializers.ModelSerializer):
         offer.save(update_fields=['min_price', 'min_delivery_time', 'updated_at'])
 
         return offer
+
+
+class OfferListSerializer(serializers.ModelSerializer):
+    details = serializers.SerializerMethodField()
+    user = serializers.IntegerField(source='user.id', read_only=True)
+    user_details = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Offer
+        fields = [
+            'id', 'user', 'title', 'image', 'description',
+            'created_at', 'updated_at', 'details',
+            'min_price', 'min_delivery_time', 'user_details'
+        ]
+
+    def get_details(self, obj):
+        # Return lightweight link objects with root-level paths
+        return [
+            {
+                'id': d.id,
+                'url': f"/offerdetails/{d.id}/"
+            }
+            for d in obj.details.all()
+        ]
+
+    def get_user_details(self, obj):
+        # Pull fields from the related auth user via UserProfile
+        auth_user = getattr(obj.user, 'user', None)
+        if not auth_user:
+            return None
+        return {
+            'first_name': auth_user.first_name,
+            'last_name': auth_user.last_name,
+            'username': auth_user.username,
+        }
