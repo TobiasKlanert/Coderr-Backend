@@ -12,7 +12,10 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
-from .serializers import RegistrationSerializer
+from .serializers import RegistrationSerializer, UserDetailSerializer, UserListSerializer
+from ..models import User
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework import generics
 
 
 class RegistrationView(APIView):
@@ -95,3 +98,95 @@ class CustomLoginView(ObtainAuthToken):
             'user_id': user.id,
         }
         return Response(data)
+
+
+class UserProfileRetrieveView(APIView):
+    """GET a specific user's public profile details by user id (pk)."""
+    permission_classes = [AllowAny]
+
+    def get(self, request, pk):
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        data = UserDetailSerializer(user).data
+        # Ensure non-null string fields come as empty strings
+        for f in ["first_name", "last_name", "location", "tel", "description", "working_hours"]:
+            if data.get(f) is None:
+                data[f] = ""
+        return Response(data)
+
+    def patch(self, request, pk):
+        # 401 if not authenticated
+        if not request.user or not request.user.is_authenticated:
+            return Response({"detail": "Authentication credentials were not provided."}, status=status.HTTP_401_UNAUTHORIZED)
+
+        # 404 if user not found
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 403 if not owner
+        if request.user.id != user.id:
+            return Response({"detail": "You can only edit your own profile."}, status=status.HTTP_403_FORBIDDEN)
+
+        # Update allowed fields
+        try:
+            update_fields = [
+                ("first_name", True),
+                ("last_name", True),
+                ("location", True),
+                ("tel", True),
+                ("description", True),
+                ("working_hours", True),
+                ("email", False),
+            ]
+
+            for field, empty_to_blank in update_fields:
+                if field in request.data:
+                    val = request.data.get(field)
+                    if empty_to_blank and (val is None):
+                        val = ""
+                    setattr(user, field, val or ("" if empty_to_blank else val))
+
+            # Ensure email uniqueness when updating
+            if "email" in request.data:
+                new_email = request.data.get("email") or ""
+                if new_email and User.objects.exclude(pk=user.pk).filter(email=new_email).exists():
+                    return Response({"email": "Email already exists"}, status=status.HTTP_400_BAD_REQUEST)
+
+            user.save()
+
+            data = UserDetailSerializer(user).data
+            for f in ["first_name", "last_name", "location", "tel", "description", "working_hours"]:
+                if data.get(f) is None:
+                    data[f] = ""
+            return Response(data, status=status.HTTP_200_OK)
+        except Exception:
+            return Response({"detail": "Internal server error."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class BusinessProfilesListView(generics.ListAPIView):
+    serializer_class = UserListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        try:
+            return User.objects.filter(type=User.Type.BUSINESS).distinct()
+        except Exception:
+            # Bubble up to DRF -> 500
+            raise
+
+
+class CustomerProfilesListView(generics.ListAPIView):
+    serializer_class = UserListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        try:
+            return User.objects.filter(type=User.Type.CUSTOMER).distinct()
+        except Exception:
+            # Bubble up to DRF -> 500
+            raise

@@ -33,5 +33,11 @@ class User(AbstractUser):
         default=Type.CUSTOMER
     )
 
+    file = models.FileField(upload_to='profile_pictures/', blank=True, null=True)
+    location = models.CharField(max_length=255, blank=True, default='')
+    tel = models.CharField(max_length=32, blank=True, default='')
+    description = models.TextField(blank=True, default='')
+    working_hours = models.CharField(max_length=64, blank=True, default='')
+
     def __str__(self):
         return self.email or self.username

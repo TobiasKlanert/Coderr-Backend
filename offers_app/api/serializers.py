@@ -1,8 +1,6 @@
 from django.utils import timezone
-from django.urls import reverse
 from rest_framework import serializers
 from ..models import Detail, Offer
-from profile_app.models import UserProfile
 
 
 class DetailSerializer(serializers.ModelSerializer):
@@ -46,16 +44,11 @@ class OfferCreateSerializer(serializers.ModelSerializer):
         if request is None or not request.user.is_authenticated:
             raise serializers.ValidationError('Authentication required.')
 
-        try:
-            user_profile = request.user.profile
-        except UserProfile.DoesNotExist: 
-            raise serializers.ValidationError('No user profile found.')
-
         details_data = validated_data.pop('details', [])
 
         # Ensure updated_at is valid on creation to avoid model default of ''
         offer = Offer.objects.create(
-            user=user_profile,
+            user=request.user,
             updated_at=timezone.now(),
             **validated_data,
         )
@@ -106,12 +99,10 @@ class OfferListSerializer(serializers.ModelSerializer):
         ]
 
     def get_user_details(self, obj):
-        # Pull fields from the related auth user via UserProfile
-        auth_user = getattr(obj.user, 'user', None)
-        if not auth_user:
-            return None
+        # Pull fields directly from the auth user (merged profile)
+        u = obj.user
         return {
-            'first_name': auth_user.first_name,
-            'last_name': auth_user.last_name,
-            'username': auth_user.username,
+            'first_name': u.first_name,
+            'last_name': u.last_name,
+            'username': u.username,
         }

@@ -9,7 +9,6 @@ This module defines:
 from django.contrib.auth import authenticate
 from rest_framework import serializers
 from ..models import User
-from profile_app.models import UserProfile
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -78,12 +77,56 @@ class RegistrationSerializer(serializers.ModelSerializer):
         account.set_password(pw)
         account.save()
 
-        # Create a related user profile upon registration
-        UserProfile.objects.create(
-            user=account,
-            email=account.email,
-            created_at=account.date_joined,
-            type=user_type,
-        )
-
         return account
+
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    """Read-only serializer for user profile details."""
+    created_at = serializers.DateTimeField(source='date_joined', format='%Y-%m-%dT%H:%M:%SZ', read_only=True)
+    user = serializers.IntegerField(source='id', read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'user',
+            'username',
+            'first_name',
+            'last_name',
+            'file',
+            'location',
+            'tel',
+            'description',
+            'working_hours',
+            'type',
+            'email',
+            'created_at',
+        ]
+        read_only_fields = fields
+
+
+class UserListSerializer(serializers.ModelSerializer):
+    """List serializer for public user profile info (business/customer lists)."""
+    user = serializers.IntegerField(source='id', read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'user',
+            'username',
+            'first_name',
+            'last_name',
+            'file',
+            'location',
+            'tel',
+            'description',
+            'working_hours',
+            'type',
+        ]
+        read_only_fields = fields
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        for f in ["first_name", "last_name", "location", "tel", "description", "working_hours"]:
+            if data.get(f) is None:
+                data[f] = ""
+        return data

@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('profile_app', '0002_alter_userprofile_created_at'),
+        ('auth_app', '0001_initial'),
     ]
 
     operations = [
@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
                 ('updated_at', models.DateTimeField(blank=True, default='')),
                 ('min_price', models.IntegerField(blank=True, default=0)),
                 ('min_delivery_time', models.IntegerField(blank=True, default=0)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='offers', to='profile_app.userprofile')),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='offers', to='auth_app.user')),
             ],
         ),
         migrations.CreateModel(

@@ -9,9 +9,33 @@ class DetailInline(admin.TabularInline):
 
 
 class OfferAdmin(admin.ModelAdmin):
-    list_display = ['user', 'title', 'created_at', 'updated_at', 'min_price']
-    list_filter = ['user']
+    list_display = ['user_username', 'title', 'created_at', 'updated_at', 'min_price']
+    list_filter = []
+
+    def user_username(self, obj):
+        return obj.user.username
+    user_username.short_description = 'user'
+    user_username.admin_order_field = 'user__username'
     inlines = [DetailInline]
+
+
+class UserUsernameFilter(admin.SimpleListFilter):
+    title = 'user'
+    parameter_name = 'user_username'
+
+    def lookups(self, request, model_admin):
+        usernames = (model_admin.model.objects
+                     .values_list('user__username', flat=True)
+                     .distinct())
+        return [(u, u) for u in usernames if u]
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value:
+            return queryset.filter(user__username=value)
+        return queryset
+
+OfferAdmin.list_filter = [UserUsernameFilter]
 
 
 admin.site.register(Offer, OfferAdmin)

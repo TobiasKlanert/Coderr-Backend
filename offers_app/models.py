@@ -1,10 +1,10 @@
 from django.db import models
-from profile_app.models import UserProfile
+from django.conf import settings
 
 
 class Offer(models.Model):
     user = models.ForeignKey(
-        UserProfile,
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='offers',
     )

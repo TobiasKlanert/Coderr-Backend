@@ -5,12 +5,8 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # Auth endpoints
+    # Auth and Profile endpoints
     path('api/', include('auth_app.api.urls')),
-    # Specific User profile
-    path('api/profile/', include('profile_app.api.urls')),
-    # Profiles collections (business/customer lists)
-    path('api/profiles/', include('profile_app.api.profiles_urls')),
     # Offers endpoints
     path('api/offers/', include('offers_app.api.urls')),
 ]
