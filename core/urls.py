@@ -11,6 +11,8 @@ urlpatterns = [
     path('api/profile/', include('profile_app.api.urls')),
     # Profiles collections (business/customer lists)
     path('api/profiles/', include('profile_app.api.profiles_urls')),
+    # Offers endpoints
+    path('api/offers/', include('offers_app.api.urls')),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
