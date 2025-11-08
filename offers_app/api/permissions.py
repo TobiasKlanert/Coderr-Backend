@@ -6,3 +6,9 @@ class IsBusinessUser(permissions.BasePermission):
             return True
     
         return False
+    
+class IsOfferOwner(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if obj.user == request.user:
+            return True
+        return False

@@ -75,7 +75,7 @@ class OfferCreateSerializer(serializers.ModelSerializer):
         return offer
 
 
-class OfferListSerializer(serializers.ModelSerializer):
+class OfferSerializer(serializers.ModelSerializer):
     details = serializers.SerializerMethodField()
     user = serializers.IntegerField(source='user.id', read_only=True)
     user_details = serializers.SerializerMethodField()
