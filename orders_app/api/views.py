@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 
 from rest_framework import status, generics
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
 from .serializers import OrderSerializer, OrderCreateSerializer
 from .permissions import IsCustomerUser
@@ -38,3 +38,14 @@ class OrderListCreateView(generics.ListCreateAPIView):
         get_object_or_404(Detail, id=offer_detail_id)
         order = serializer.save()
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+
+class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Order.objects.all()
+
+    def get_permissions(self):
+        if self.request.method == 'DELETE':
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
+    
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
