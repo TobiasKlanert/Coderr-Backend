@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from django.db.models import Q
 
 from rest_framework import status, generics
 from rest_framework.response import Response
@@ -49,3 +50,23 @@ class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
     
     def delete(self, request, *args, **kwargs):
         return self.destroy(request, *args, **kwargs)
+
+    def patch(self, request, *args, **kwargs):
+        order = self.get_object()
+        user = request.user
+
+        if not user.is_authenticated or order.business_user_id != user.id:
+            return Response({'detail': 'Not permitted.'}, status=status.HTTP_403_FORBIDDEN)
+
+        new_status = (request.data or {}).get('status')
+        if new_status is None:
+            return Response({'status': 'This field is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        valid_statuses = {choice for (choice, _label) in Order.Status.choices}
+        if new_status not in valid_statuses:
+            return Response({'status': f'Invalid value. Allowed: {sorted(valid_statuses)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        order.status = new_status
+        order.save(update_fields=['status', 'updated_at'])
+
+        return Response(OrderSerializer(order).data, status=status.HTTP_200_OK)
