@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
-from django.db.models import Q
 
 from rest_framework import status, generics
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
@@ -9,6 +9,7 @@ from .serializers import OrderSerializer, OrderCreateSerializer
 from .permissions import IsCustomerUser
 from ..models import Order
 from offers_app.models import Detail
+from auth_app.models import User
 
 
 class OrderListCreateView(generics.ListCreateAPIView):
@@ -33,12 +34,14 @@ class OrderListCreateView(generics.ListCreateAPIView):
         return Order.objects.filter(business_user=user).order_by('-created_at')
 
     def create(self, request, *args, **kwargs):
-        serializer = OrderCreateSerializer(data=request.data, context={'request': request})
+        serializer = OrderCreateSerializer(
+            data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         offer_detail_id = serializer.validated_data.get('offer_detail_id')
         get_object_or_404(Detail, id=offer_detail_id)
         order = serializer.save()
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+
 
 class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Order.objects.all()
@@ -47,7 +50,7 @@ class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
         if self.request.method == 'DELETE':
             return [IsAdminUser()]
         return [IsAuthenticated()]
-    
+
     def delete(self, request, *args, **kwargs):
         return self.destroy(request, *args, **kwargs)
 
@@ -70,3 +73,27 @@ class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
         order.save(update_fields=['status', 'updated_at'])
 
         return Response(OrderSerializer(order).data, status=status.HTTP_200_OK)
+
+
+class OrderCountView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        get_object_or_404(User, id=pk, type=User.Type.BUSINESS)
+        count = Order.objects.filter(
+            business_user=pk,
+            status='in_progress'
+        ).count()
+        return Response({"order_count": count})
+
+
+class OrderCompleteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        get_object_or_404(User, id=pk, type=User.Type.BUSINESS)
+        count = Order.objects.filter(
+            business_user=pk,
+            status='completed'
+        ).count()
+        return Response({"completed_order_count": count})
