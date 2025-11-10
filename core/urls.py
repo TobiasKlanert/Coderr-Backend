@@ -8,7 +8,9 @@ urlpatterns = [
     # Auth and Profile endpoints
     path('api/', include('auth_app.api.urls')),
     # Offers endpoints
-    path('api/offers/', include('offers_app.api.urls')),
+    path('api/offers/', include('offers_app.api.urls_offers')),
+    # Offer-details endpoints
+    path('api/offerdetails/', include('offers_app.api.urls_details')),
     # Orders endpoints
     path('api/orders/', include('orders_app.api.urls')),
 ]
