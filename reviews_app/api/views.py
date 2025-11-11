@@ -1,4 +1,6 @@
-from rest_framework import generics
+from django_filters.rest_framework import DjangoFilterBackend
+
+from rest_framework import generics, permissions, filters
 from rest_framework.permissions import IsAuthenticated
 
 from .permissions import IsCustomerUser
@@ -10,6 +12,11 @@ class ReviewListCreateView(generics.ListCreateAPIView):
     serializer_class = ReviewSerializer
     permission_classes = [IsAuthenticated]
 
+    filter_backends = [DjangoFilterBackend,
+                       filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['business_user_id', 'reviewer_id']
+    ordering_fields = ['updated_at', 'rating']
+ 
     def get_permissions(self):
         if self.request.method == 'GET':
             return [IsAuthenticated()]
