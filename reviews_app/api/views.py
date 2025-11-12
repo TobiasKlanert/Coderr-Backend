@@ -1,3 +1,4 @@
+from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework import generics, permissions, filters
@@ -32,3 +33,6 @@ class ReviewDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def delete(self, request, *args, **kwargs):
         return self.destroy(request, *args, **kwargs)
+    
+    def perform_update(self, serializer):
+        serializer.save(updated_at=timezone.now())

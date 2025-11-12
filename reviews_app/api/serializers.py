@@ -21,3 +21,12 @@ class ReviewSerializer(serializers.ModelSerializer):
                 "You have already rated this user."
             )
         return attrs
+    
+    def get_fields(self):
+        fields = super().get_fields()
+        request = self.context.get('request')
+
+        if request and request.method in ['PATCH', 'PUT']:
+            fields['business_user'].read_only = True
+
+        return fields
