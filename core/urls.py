@@ -16,7 +16,9 @@ urlpatterns = [
     path('api/order-count/', include('orders_app.api.urls_order_count')),
     path('api/completed-order-count/', include('orders_app.api.urls_order_completed')),
     # Review endpoints
-    path('api/reviews/', include('reviews_app.api.urls'))
+    path('api/reviews/', include('reviews_app.api.urls')),
+    # Dashboard endpoints
+    path('api/base-info/', include('dashboard_app.api.urls'))
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
