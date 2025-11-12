@@ -6,3 +6,10 @@ class IsCustomerUser(permissions.BasePermission):
             return True
     
         return False
+    
+class IsReviewer(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.user == obj.reviewer:
+            return True
+        
+        return False
