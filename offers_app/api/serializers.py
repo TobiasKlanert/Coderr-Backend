@@ -79,6 +79,8 @@ class OfferSerializer(serializers.ModelSerializer):
     details = serializers.SerializerMethodField()
     user = serializers.IntegerField(source='user.id', read_only=True)
     user_details = serializers.SerializerMethodField()
+    created_at = serializers.DateTimeField(format='%Y-%m-%dT%H:%M:%SZ', read_only=True)
+    updated_at = serializers.DateTimeField(format='%Y-%m-%dT%H:%M:%SZ', read_only=True)
 
     class Meta:
         model = Offer

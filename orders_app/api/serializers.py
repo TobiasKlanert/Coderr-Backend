@@ -8,6 +8,8 @@ from offers_app.models import Detail
 class OrderSerializer(serializers.ModelSerializer):
     customer_user = serializers.IntegerField(source='customer_user.id', read_only=True)
     business_user = serializers.IntegerField(source='business_user.id', read_only=True)
+    created_at = serializers.DateTimeField(format='%Y-%m-%dT%H:%M:%SZ', read_only=True)
+    updated_at = serializers.DateTimeField(format='%Y-%m-%dT%H:%M:%SZ', read_only=True)
 
     class Meta:
         model = Order
