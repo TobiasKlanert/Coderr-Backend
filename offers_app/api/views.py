@@ -19,6 +19,7 @@ from rest_framework import generics, permissions, filters, status
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError
 
 from .serializers import OfferCreateSerializer, OfferSerializer, DetailSerializer
 from .permissions import IsBusinessUser, IsOfferOwner
@@ -93,8 +94,13 @@ class OfferListCreateView(generics.ListCreateAPIView):
         queryset = Offer.objects.all()
 
         time_param = self.request.query_params.get('max_delivery_time', None)
-        if time_param is not None:
-            max_days = int(time_param)
+        if time_param is not None and str(time_param).strip() != '':
+            try:
+                max_days = int(time_param)
+            except (TypeError, ValueError):
+                raise ValidationError(
+                    {'max_delivery_time': 'Expected an integer value.'}
+                )
             queryset = queryset.filter(min_delivery_time__lte=max_days)
 
         return queryset

@@ -23,6 +23,7 @@ class DashboardOverviewView(APIView):
     - Performs a DB aggregation for the average rating and simple counts for the other metrics.
     - Returns a rest_framework.response.Response with a JSON object containing the fields above and HTTP 200 on success.
     """
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     def get(self, request):

@@ -75,7 +75,7 @@ class Order(models.Model):
     class Status(models.TextChoices):
         IN_PROGRESS = 'in_progress'
         COMPLETED = 'completed'
-        CANCELED = 'canceled'
+        CANCELLED = 'cancelled'
 
     status = models.CharField(
         max_length=12,
