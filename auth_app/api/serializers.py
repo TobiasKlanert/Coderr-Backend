@@ -125,6 +125,23 @@ class UserListSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def to_representation(self, instance):
+        """
+        Return a serialized representation of `instance`, normalizing select fields.
+
+        This method obtains the base representation by calling the parent serializer's
+        to_representation and then ensures that the following fields are always present
+        as empty strings rather than None: "first_name", "last_name", "location",
+        "tel", "description", and "working_hours". If any of these keys are missing
+        or have a value of None in the base representation, they are set to "".
+        All other fields returned by the parent representation are left unchanged.
+
+        Args:
+            instance: The model instance (or object) to be serialized.
+
+        Returns:
+            dict: A dictionary representation of `instance` with specified None values
+            replaced by empty strings.
+        """
         data = super().to_representation(instance)
         for f in ["first_name", "last_name", "location", "tel", "description", "working_hours"]:
             if data.get(f) is None:

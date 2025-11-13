@@ -169,6 +169,26 @@ class UserProfileRetrieveView(APIView):
 
 
 class BusinessProfilesListView(generics.ListAPIView):
+    """
+    List API view that returns all user profiles of type BUSINESS.
+
+    This view is a DRF generics.ListAPIView configured to use UserListSerializer
+    and requires the requesting user to be authenticated (IsAuthenticated).
+
+    Behavior:
+    - get_queryset() returns a Django QuerySet of User instances filtered where
+        User.type == User.Type.BUSINESS and ensures distinct results.
+    - Any exception raised during queryset construction is intentionally allowed
+        to propagate so that DRF will convert it into a 500 response.
+
+    HTTP semantics:
+    - Method: GET
+    - Success: 200 OK with a paginated list of serialized business user objects
+        (pagination, filtering, and ordering are applied if enabled in the DRF settings
+        or via additional view attributes).
+    - Authentication failure: 401 Unauthorized (when the request is unauthenticated).
+    - Server error: 500 Internal Server Error if an unexpected exception occurs.
+    """
     serializer_class = UserListSerializer
     permission_classes = [IsAuthenticated]
 
@@ -181,6 +201,9 @@ class BusinessProfilesListView(generics.ListAPIView):
 
 
 class CustomerProfilesListView(generics.ListAPIView):
+    """ 
+    List API view that returns all user profiles of type CUSTOMER.
+    """
     serializer_class = UserListSerializer
     permission_classes = [IsAuthenticated]
 
