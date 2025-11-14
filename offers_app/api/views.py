@@ -57,7 +57,7 @@ class OfferListCreateView(generics.ListCreateAPIView):
 
     filter_backends = [DjangoFilterBackend,
                        filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['user__id', 'min_price']
+    filterset_fields = ['user__id']
     search_fields = ['title', 'description']
     ordering_fields = ['updated_at', 'min_price']
     pagination_class = LargeResultsSetPagination
@@ -85,10 +85,22 @@ class OfferListCreateView(generics.ListCreateAPIView):
         return [IsAuthenticated(), IsBusinessUser()]
 
     def get_queryset(self):
-        """Construct the base queryset for listing.
+        """ 
+        Return a queryset of Offer objects optionally filtered by request query parameters.
 
-        Honors optional `max_delivery_time` query parameter to restrict
-        results by `min_delivery_time`.
+        This method builds the base queryset for list views and applies two optional
+        filters based on query parameters provided in self.request.query_params:
+
+        Parameters accepted via query string:
+        - max_delivery_time: If supplied and non-empty, must be an integer. The
+            returned queryset will include offers whose `min_delivery_time` is less than
+            or equal to this value.
+        - min_price: If supplied and non-empty, must be an integer. The returned
+            queryset will include offers whose `min_price` is greater than or equal to
+            this value.
+
+        Returns:
+        - django.db.models.QuerySet: the filtered queryset of Offer objects. 
         """
 
         queryset = Offer.objects.all()
@@ -103,20 +115,30 @@ class OfferListCreateView(generics.ListCreateAPIView):
                 )
             queryset = queryset.filter(min_delivery_time__lte=max_days)
 
+        price_param = self.request.query_params.get('min_price', None)
+        if price_param is not None and str(price_param).strip() != '':
+            try:
+                min_price_filter = int(price_param)
+            except (TypeError, ValueError):
+                raise ValidationError(
+                    {'min_price': 'Expected an integer value.'}
+                )
+            queryset = queryset.filter(min_price__gte=min_price_filter)
+
         return queryset
 
 
 class DetailRetrieveView(generics.RetrieveAPIView):
-        """Retrieve a single Offer Detail by id.
+    """Retrieve a single Offer Detail by id.
 
-        - Method: GET
-        - Permissions: default DRF permission classes (in this project it is allowed
-            wherever the view is used; view-level permission wrappers may apply).
-        - Response: serialized Detail object.
-        """
+    - Method: GET
+    - Permissions: default DRF permission classes (in this project it is allowed
+        wherever the view is used; view-level permission wrappers may apply).
+    - Response: serialized Detail object.
+    """
 
-        queryset = Detail.objects.all()
-        serializer_class = DetailSerializer
+    queryset = Detail.objects.all()
+    serializer_class = DetailSerializer
 
 
 class OfferDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -241,9 +263,11 @@ class OfferDetailView(generics.RetrieveUpdateDestroyAPIView):
         details_qs = offer.details.all()
         if details_qs.exists():
             offer.min_price = min(d.price for d in details_qs)
-            offer.min_delivery_time = min(d.delivery_time_in_days for d in details_qs)
+            offer.min_delivery_time = min(
+                d.delivery_time_in_days for d in details_qs)
         offer.updated_at = timezone.now()
-        offer.save(update_fields=['title', 'description', 'min_price', 'min_delivery_time', 'updated_at'])
+        offer.save(update_fields=['title', 'description',
+                   'min_price', 'min_delivery_time', 'updated_at'])
         return details_qs
 
     def _build_response(self, offer, details_qs):
@@ -272,4 +296,3 @@ class OfferDetailView(generics.RetrieveUpdateDestroyAPIView):
         """
 
         return self.destroy(request, *args, **kwargs)
-    

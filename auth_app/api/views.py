@@ -102,7 +102,7 @@ class CustomLoginView(ObtainAuthToken):
 
 class UserProfileRetrieveView(APIView):
     """GET a specific user's public profile details by user id (pk)."""
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, pk):
         try:
