@@ -67,6 +67,39 @@ python manage.py runserver
 
 The API will be available at `http://127.0.0.1:8000/`.
 
+## Docker (Compose)
+
+The Compose setup runs the Django app without exposing any external ports and prepares a Postgres service for production-like usage. A reverse proxy (e.g., Caddy) can attach later via the shared `web` network.
+
+1) Build and start services
+```
+docker compose up -d --build
+```
+
+2) Follow app logs
+```
+docker compose logs -f app
+```
+
+3) Run migrations (after the database is ready)
+```
+docker compose exec app python manage.py migrate
+```
+
+4) Collect static files (optional)
+```
+docker compose exec app python manage.py collectstatic --noinput
+```
+
+5) Simple health test inside the Docker network
+```
+docker compose exec app curl -f http://localhost:8000/
+```
+
+Notes:
+- The app container starts without publishing ports; access should come via another container on the same `web` network.
+- If you switch to Postgres, make sure Django reads your `.env` values and points `DATABASES` at the Postgres service (`db`). Run migrations after the database is up.
+
 ## Configuration
 
 All settings live in `core/settings.py`.

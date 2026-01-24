@@ -20,13 +20,30 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
+def _get_bool_env(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _get_list_env(name: str, default: list[str] | None = None) -> list[str]:
+    value = os.getenv(name)
+    if value is None:
+        return default or []
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-@(w!)29j6o5cpkvdkf%mnu@g2$r-ku4!iq5*+6b(x#sh2=*pbh'
+SECRET_KEY = os.getenv(
+    "SECRET_KEY",
+    "django-insecure-@(w!)29j6o5cpkvdkf%mnu@g2$r-ku4!iq5*+6b(x#sh2=*pbh",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = _get_bool_env("DEBUG", default=True)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = _get_list_env("ALLOWED_HOSTS", default=[])
 
 
 # Application definition
@@ -82,12 +99,47 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if DATABASE_URL:
+    from urllib.parse import urlparse
+
+    parsed_db = urlparse(DATABASE_URL)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql" if parsed_db.scheme.startswith("postgres") else "django.db.backends.sqlite3",
+            "NAME": parsed_db.path.lstrip("/") or (BASE_DIR / "db.sqlite3"),
+            "USER": parsed_db.username or "",
+            "PASSWORD": parsed_db.password or "",
+            "HOST": parsed_db.hostname or "",
+            "PORT": parsed_db.port or "",
+        }
     }
-}
+else:
+    db_name = os.getenv("POSTGRES_DB")
+    db_user = os.getenv("POSTGRES_USER")
+    db_password = os.getenv("POSTGRES_PASSWORD")
+    db_host = os.getenv("DB_HOST")
+    db_port = os.getenv("DB_PORT")
+
+    if all([db_name, db_user, db_password, db_host, db_port]):
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql",
+                "NAME": db_name,
+                "USER": db_user,
+                "PASSWORD": db_password,
+                "HOST": db_host,
+                "PORT": db_port,
+            }
+        }
+    else:
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": BASE_DIR / "db.sqlite3",
+            }
+        }
 
 
 # Password validation
@@ -147,6 +199,9 @@ REST_FRAMEWORK = {
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
-CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1:5500",
-]
+CORS_ALLOWED_ORIGINS = _get_list_env(
+    "CORS_ALLOWED_ORIGINS",
+    default=["http://127.0.0.1:5500"],
+)
+
+CSRF_TRUSTED_ORIGINS = _get_list_env("CSRF_TRUSTED_ORIGINS", default=[])
