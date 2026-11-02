@@ -13,7 +13,7 @@ Coderr is a multi-tenant marketplace backend for connecting customers with busin
 ## Tech stack
 - Python, Django 5, Django REST Framework
 - Django Filter
-- SQLite by default (easy local dev)
+- PostgreSQL in production, SQLite as a fallback for local development (`DEBUG=1`)
 - Token Authentication (`rest_framework.authtoken`)
 - CORS support for a frontend (defaults to `http://127.0.0.1:5500`)
 
@@ -47,19 +47,32 @@ source env/bin/activate
 pip install -r requirements.txt
 ```
 
-### 4) Apply database migrations
+### 4) Enable development mode
+
+The settings default to production. Without `DEBUG=1` the app refuses to start unless `SECRET_KEY` and a PostgreSQL connection are configured.
+
+```
+# Windows (PowerShell)
+$env:DEBUG = "1"
+# macOS/Linux
+export DEBUG=1
+```
+
+With `DEBUG=1` and no database variables, SQLite is used and a random `SECRET_KEY` is generated on each start.
+
+### 5) Apply database migrations
 
 ```
 python manage.py migrate
 ```
 
-### 5) (Optional) Create an admin user to access `/admin/`
+### 6) (Optional) Create an admin user to access `/admin/`
 
 ```
 python manage.py createsuperuser
 ```
 
-### 6) Run the development server
+### 7) Run the development server
 
 ```
 python manage.py runserver
@@ -102,16 +115,15 @@ Notes:
 
 ## Configuration
 
-All settings live in `core/settings.py`.
+All settings are read from environment variables in `core/settings.py`. Docker Compose loads them from `.env`.
 
-- `SECRET_KEY`: Currently hardcoded for development. For production, set this from an environment variable and keep it secret.
-- `DEBUG`: Set to `True` for development. Must be `False` in production.
-- `ALLOWED_HOSTS`: Add your domain(s) or IPs for production.
-- `DATABASES`: Uses SQLite by default. Switch to Postgres/MySQL for production.
-- `CORS_ALLOWED_ORIGINS`: Add your frontend origin(s). Defaults to `http://127.0.0.1:5500`.
+- `DEBUG`: Off by default. Set `DEBUG=1` for local development only.
+- `SECRET_KEY`: Required when `DEBUG` is off, the app refuses to start without it. There is no fallback key in the code. Generate one with `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`.
+- `ALLOWED_HOSTS`: Comma-separated list of your domain(s).
+- Database: `DATABASE_URL`, or `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `DB_HOST` and `DB_PORT`. Required when `DEBUG` is off. SQLite is only used as a fallback with `DEBUG=1`.
+- `CORS_ALLOWED_ORIGINS`: Comma-separated frontend origin(s). Defaults to `http://127.0.0.1:5500`.
+- `CSRF_TRUSTED_ORIGINS`: Comma-separated origins for the admin login behind HTTPS.
 - `REST_FRAMEWORK.DEFAULT_AUTHENTICATION_CLASSES`: Uses Token Authentication.
-
-Note: The project does not currently read a `.env` file. If you want environment‑based config, integrate a package like `django-environ` and update `core/settings.py` accordingly.
 
 ## Authentication flow
 1. **Register** (`POST /api/registration/`) with `username`, `email`, `password`, `repeated_password`, and `type` (`customer` or `business`). Response returns a token.
