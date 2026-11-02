@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+from django.core.management.utils import get_random_secret_key
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -34,14 +37,18 @@ def _get_list_env(name: str, default: list[str] | None = None) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv(
-    "SECRET_KEY",
-    "django-insecure-@(w!)29j6o5cpkvdkf%mnu@g2$r-ku4!iq5*+6b(x#sh2=*pbh",
-)
+# Production is the default. Local development has to opt in with DEBUG=1.
+DEBUG = _get_bool_env("DEBUG", default=False)
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = _get_bool_env("DEBUG", default=True)
+# There is deliberately no fallback key in the code. Without SECRET_KEY the
+# app refuses to start in production. In development a random key is
+# generated on each start, which only invalidates admin sessions (API tokens
+# are stored in the database and stay valid).
+SECRET_KEY = os.getenv("SECRET_KEY", "")
+if not SECRET_KEY:
+    if not DEBUG:
+        raise ImproperlyConfigured("SECRET_KEY must be set when DEBUG is off.")
+    SECRET_KEY = get_random_secret_key()
 
 ALLOWED_HOSTS = _get_list_env("ALLOWED_HOSTS", default=[])
 
@@ -134,13 +141,19 @@ else:
                 "PORT": db_port,
             }
         }
-    else:
+    elif DEBUG:
         DATABASES = {
             "default": {
                 "ENGINE": "django.db.backends.sqlite3",
                 "NAME": BASE_DIR / "db.sqlite3",
             }
         }
+    else:
+        # A missing variable must not silently switch production to SQLite.
+        raise ImproperlyConfigured(
+            "Database not configured: set DATABASE_URL or POSTGRES_DB, "
+            "POSTGRES_USER, POSTGRES_PASSWORD, DB_HOST and DB_PORT."
+        )
 
 
 # Password validation
