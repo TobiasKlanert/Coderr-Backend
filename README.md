@@ -1,6 +1,10 @@
 # Coderr Backend (Django + DRF)
 
-Coderr is a multi-tenant marketplace backend for connecting customers with business partners. The service is built with Django 5.2 and Django REST Framework (DRF) and exposes token-secured endpoints for authentication, offer management, ordering, reviews, and lightweight dashboard metrics. This document summarizes everything you need to run and extend the project locally and to present it on GitHub.
+> **Course project.** Developed as part of the Developer Akademie GmbH advanced training program. The frontend, and with it the API it expects, was provided by Developer Akademie and is not part of this repository. The backend implementation is my own work.
+>
+> This project is not deployed. Run it locally as described below. See [Known limitations](#known-limitations) for open issues.
+
+Coderr is a marketplace backend for connecting customers with business partners. The service is built with Django 5.2 and Django REST Framework (DRF) and exposes token-secured endpoints for authentication, offer management, ordering, reviews, and lightweight dashboard metrics. This document summarizes everything you need to run and extend the project locally.
 
 ## Features
 - Custom `auth_app.User` model with business/customer roles, extended profile fields, and token-based auth.
@@ -82,36 +86,29 @@ The API will be available at `http://127.0.0.1:8000/`.
 
 ## Docker (Compose)
 
-The Compose setup runs the Django app without exposing any external ports and prepares a Postgres service for production-like usage. A reverse proxy (e.g., Caddy) can attach later via the shared `web` network.
+The Compose file is a starting point for running the API with PostgreSQL behind a reverse proxy (e.g., Caddy) on a shared `web` network. It is not production-ready, see [Known limitations](#known-limitations). The app container publishes no ports, so for local development use the steps above.
 
-1) Build and start services
+1) Create a `.env` file with the variables from [Configuration](#configuration). For the Compose setup, set `DB_HOST=db` and `DB_PORT=5432`.
+
+2) Build and start services
 ```
 docker compose up -d --build
 ```
 
-2) Follow app logs
+3) Follow app logs
 ```
 docker compose logs -f app
 ```
 
-3) Run migrations (after the database is ready)
+4) Run migrations (after the database is ready)
 ```
 docker compose exec app python manage.py migrate
 ```
 
-4) Collect static files (optional)
+5) Collect static files (optional)
 ```
 docker compose exec app python manage.py collectstatic --noinput
 ```
-
-5) Simple health test inside the Docker network
-```
-docker compose exec app curl -f http://localhost:8000/
-```
-
-Notes:
-- The app container starts without publishing ports; access should come via another container on the same `web` network.
-- If you switch to Postgres, make sure Django reads your `.env` values and points `DATABASES` at the Postgres service (`db`). Run migrations after the database is up.
 
 ## Configuration
 
@@ -252,6 +249,15 @@ Trying to review the same business twice raises `{"non_field_errors":["You have 
 4. Serve static/media files via the web server or object storage.
 5. Rotate tokens or enable HTTPS-only transport for auth.
 6. Consider adding caching (Redis) or task queues if offer/order volume grows.
+
+## Known limitations
+
+These issues are known and intentionally left open, because the project is not deployed.
+
+- **Missing migrations:** Some model changes in `offers_app` and `orders_app` are not covered by migrations yet. `python manage.py makemigrations --check` reports them.
+- **Healthcheck:** The Docker healthcheck requests `/`, which has no route and returns 404. The container is therefore reported as unhealthy.
+- **Uploads:** Profile pictures and offer images use `FileField` without validating file type or size.
+- **Network:** In `docker-compose.yml` the database shares the `web` network with the reverse proxy instead of using an internal network.
 
 ## Troubleshooting
 - **401 Unauthorized**: Verify the `Authorization: Token ...` header and that the token is issued to the correct user type.
